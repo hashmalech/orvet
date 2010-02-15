@@ -25,13 +25,18 @@ class Orvet:
         path = path.lstrip('/')
         self.routes.setdefault(method, Router()).add(path, handler, **k)
 
-    def handle(self):
-        handler, args = self.match_url(request.path, request.method)
-        if not handler:
-            return HTTPError(status(404))
-        if not args:
-            args = dict()
-        return handler(**args)
+    # p = path
+    # m = method
+    # h = handler
+    # a = args
+    def handle(self, p, m):
+        h, a = self.match_url(p, m)
+        if not h:
+            pass
+            # return HTTPError(status(404))
+        if not a:
+            a = dict()
+        return h(**a)
 
     # e = environ
     # b = body
