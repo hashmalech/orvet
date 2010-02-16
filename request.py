@@ -8,8 +8,8 @@ from UserDict import DictMixin
 # from data_structures import *
 # from utilities import *
 
-try: from cgi import parse_qs # Python 2.5
-except ImportError: from urlparse import parse_qs # Python 2.6
+# try: from cgi import parse_qs # Python 2.5
+# except ImportError: from urlparse import parse_qs # Python 2.6
 
 # from StringIO import StringIO as BytesIO
 # TextIOWrapper = None
@@ -18,30 +18,24 @@ except ImportError: from urlparse import parse_qs # Python 2.6
 # MEMFILE_MAX = 1024*100
 
 
-class Request(threading.local, DictMixin):
-    def __init__(self):
-        self.bind({}, None)
+class Rq(threading.local, DictMixin):
+    def __init__(self):self.b({},None)
+    def __getitem__(self,k):return self.environ[k]
+    def __setitem__(self,k,v):self.environ[k]=v
 
-    def bind(self, environ, app=None):
-        """ Bind a new WSGI enviroment """
+    def b(self, e, app=None):
         self.app = app
-        self.environ = environ
+        self.environ = e
+        self.e = e
         # self._GET = self._POST = self._GETPOST = None
         # self._COOKIES = self._body = self._header = None
         # These attributes are used anyway, so it is ok to compute them here
-        self.path = environ.get('PATH_INFO', '/')
+        self.path = e.get('PATH_INFO', '/')
         if not self.path.startswith('/'):
             self.path = '/' + self.path
-        self.method = environ.get('REQUEST_METHOD', 'GET').upper()
+        self.method = e.get('REQUEST_METHOD', 'GET')
 
-    def __getitem__(self, key):
-        return self.environ[key]
-
-    def __setitem__(self, key, value):
-        self.environ[key] = value
-
-    def keys(self):
-        return self.environ.keys()
+    def keys(self): return self.environ.keys()
 
     # @property
     # def query_string(self):

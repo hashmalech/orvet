@@ -1,8 +1,15 @@
-import traceback
+from traceback import format_exc as ET
 
-from router import Router
-from request import Request
-from response import Response
+from router import Rt
+from request import Rq
+from response import Rs
+
+
+class StatusError(Exception):
+    def __init__(self,s=500):start_err(s)
+
+
+def start_err(s):rq.e['wsgi.errors'].write(ET());rs.s(status(s),[])
 
 
 class Orvet:
@@ -12,37 +19,25 @@ class Orvet:
         # self.error_handler = {}
         # self.config = dict()
 
-    # e = environ
-    # s = start_response
-    # r = response
-    # b = body
-    def __call__(self, e, s):
-        r, b = self.h(e)
-        s(status(r.status), r.headers())
-        return self.i(b)
+    # e = environ, s = start_response, r = response, b = body, t = traceback
+    def __call__(self,e,s):
+        try:r,b=self.h(e,s);s(status(r.status),r.headers());return self.i(b)
+        except StatusError:return[ET()]
+        except Exception:start_err(500);return[ET()]
 
-    def add_route(self, handler, path, method='GET', **k):
-        path = path.lstrip('/')
-        self.routes.setdefault(method, Router()).add(path, handler, **k)
+    # p = path, h = handler
+    def add_route(self, p, h, method='GET', **k):
+        self.routes.setdefault(method, Rt()).add(p.lstrip('/'), h, **k)
 
-    # p = path
-    # m = method
-    # h = handler
-    # a = args
-    def handle(self, p, m):
-        h, a = self.match_url(p, m)
-        if not h:
-            pass
-            # return HTTPError(status(404))
-        if not a:
-            a = dict()
+    # p = path, m = method, h = handler, a = args
+    def handle(self,p,m):
+        h,a=self.mu(p,m)
+        if not h:raise StatusError(404)
         return h(**a)
 
-    # e = environ
-    # b = body
-    def h(self, e):
-        request.bind(e, self)
-        response.bind(self)
+    # e = environ, b = body
+    def h(self, e, s):
+        request.b(e,self);response.b(s, self)
         b = self.handle(request.path, request.method)
         if not b and response.status == 200:
             response.status = 404
@@ -51,28 +46,23 @@ class Orvet:
     def i(self, d):
         return [d]
 
-    # p = path
-    # m = method
-    # t = tests
-    # ha = handler
-    # pa = params
-    def match_url(self, p, method='GET'):
-        p = p.lstrip('/')
-        m = method
-        t = (m,'GET','ALL') if m == 'HEAD' else (m,'ALL')
+    # p = path, m = method, t = tests, h = handler, a = params
+    def mu(self, p, method='GET'):
+        p,m=p.lstrip('/'),method
+        t=(m,'GET','ALL')if m=='HEAD'else(m,'ALL')
         for m in t:
             if m in self.routes:
-                ha, pa = self.routes[m].match(p)
-                if ha:
-                    return ha, pa
-        return None, None
+                h,a=self.routes[m].match(p)
+                if not a:a={}
+                if h:return h,a
+        return None,None
 
 
 app = Orvet()
 
 
-request = Request()
-response = Response()
+request = rq = Rq()
+response = rs = Rs()
 
 
 def status(s):

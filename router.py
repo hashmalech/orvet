@@ -18,7 +18,7 @@ class RouteBuildError(RouteError):
     """ The route could not been build """
 
 
-class Router(object):
+class Rt(object):
     ''' A route associates a string (e.g. URL) with an object (e.g. function)
     Dynamic routes use regular expressions to describe all matching strings.
     Some dynamic routes may extract parts of the string and provide them as
