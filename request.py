@@ -11,11 +11,11 @@ from UserDict import DictMixin
 # try: from cgi import parse_qs # Python 2.5
 # except ImportError: from urlparse import parse_qs # Python 2.6
 
-# from StringIO import StringIO as BytesIO
+from StringIO import StringIO as BytesIO
 # TextIOWrapper = None
 
 # SECURECOOKIE_KEY = "Exi1GApX"
-# MEMFILE_MAX = 1024*100
+MEMFILE_MAX = 1024*100
 
 
 class Rq(threading.local, DictMixin):
@@ -29,6 +29,7 @@ class Rq(threading.local, DictMixin):
         self.e = e
         # self._GET = self._POST = self._GETPOST = None
         # self._COOKIES = self._body = self._header = None
+        self._body = None
         # These attributes are used anyway, so it is ok to compute them here
         self.path = e.get('PATH_INFO', '/')
         if not self.path.startswith('/'):
@@ -113,24 +114,24 @@ class Rq(threading.local, DictMixin):
     #         self._GETPOST.update(dict(self.POST))
     #     return self._GETPOST
 
-    # @property
-    # def body(self):
-    #     """ The HTTP request body as a seekable file object """
-    #     if self._body is None:
-    #         cl = 0 if not self['CONTENT_LENGTH'] else self['CONTENT_LENGTH']
-    #         maxread = max(0, int(cl))
-    #         stream = self.environ['wsgi.input']
-    #         self._body = BytesIO() if maxread < MEMFILE_MAX\
-    #                                else TemporaryFile(mode='w+b')
-    #         while maxread > 0:
-    #             part = stream.read(min(maxread, MEMFILE_MAX))
-    #             if not part: #TODO: Wrong content_length. Error? Do nothing?
-    #                 break
-    #             self._body.write(part)
-    #             maxread -= len(part)
-    #         self.environ['wsgi.input'] = self._body
-    #     self._body.seek(0)
-    #     return self._body
+    @property
+    def body(self):
+        """ The HTTP request body as a seekable file object """
+        if self._body is None:
+            cl = 0 if not self['CONTENT_LENGTH'] else self['CONTENT_LENGTH']
+            maxread = max(0, int(cl))
+            stream = self.environ['wsgi.input']
+            self._body = BytesIO() if maxread < MEMFILE_MAX\
+                                   else TemporaryFile(mode='w+b')
+            while maxread > 0:
+                part = stream.read(min(maxread, MEMFILE_MAX))
+                if not part: #TODO: Wrong content_length. Error? Do nothing?
+                    break
+                self._body.write(part)
+                maxread -= len(part)
+            self.environ['wsgi.input'] = self._body
+        self._body.seek(0)
+        return self._body
 
     # @property
     # def auth(self): #TODO: Tests and docs. Add support for digest. namedtuple?
