@@ -32,8 +32,8 @@ class Orvet:
     # p = path, m = method, h = handler, a = args
     def handle(self,p,m):
         h,a=self.mu(p,m)
-        if not h:raise StatusError(404)
-        return h(**a)
+        if h:return h(**a)
+        else:rs.status=404
 
     # e = environ, b = body
     def h(self, e, s):
@@ -43,8 +43,9 @@ class Orvet:
             response.status = 404
         return response, b
 
-    def i(self, d):
-        return [d]
+    # This method should convert the response body to an iterable
+    # d = data
+    def i(self,d):d=d or'';return[d]
 
     # p = path, m = method, t = tests, h = handler, a = params
     def mu(self, p, method='GET'):
