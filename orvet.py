@@ -39,9 +39,6 @@ class Orvet:
     def h(self, e, s):
         request.b(e,self);response.b(s, self)
         b = self.handle(request.path, request.method)
-        # Change this, default behavior unneeded.
-        if not b and response.status == 200:
-            response.status = 404
         return response, b
 
     # This method should convert the response body to an iterable
