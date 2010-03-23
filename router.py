@@ -128,18 +128,18 @@ class Rt(object):
     def match(self, uri):
         ''' Matches an URL and returns a (handler, data) tuple '''
         if uri in self.static:
-            return self.static[uri], None
+            return self.static[uri], {}
         for big_re, subroutes in self.dynamic:
             match = big_re.match(uri)
             if match:
                 data, group_re = subroutes[match.lastindex - 1]
                 if not group_re:
-                    return data, None
+                    return data, {}
                 group_match = group_re.match(uri)
                 if not group_match:
-                    return None, None
+                    return None, {}
                 return data, group_match.groupdict()
-        return None, None
+        return None, {}
 
     def build(self, route_name, **args):
         ''' Builds an URL out of a named route and some parameters.'''
