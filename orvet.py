@@ -61,7 +61,9 @@ class Orvet:
         except Exception:return[start_err()]
 
     def add_route(self, p, h, method='GET', **k):
-        self.routes.setdefault(method,Rt()).add(p.lstrip('/'), h, **k)
+        p = p.lstrip('/')
+        p = p.split('?')[0]
+        self.routes.setdefault(method,Rt()).add(p, h, **k)
 
     def h(self, e, s):
         rq.b(e,self);rs.b(s,self);h,a=self.m(rq.path,rq.method)
