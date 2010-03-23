@@ -30,7 +30,8 @@ def cookie_decode(data, k):
     if v:return pickle.loads(base64.b64decode(m))
 
 
-def start_err(): rq.e['wsgi.errors']=t();rs.s(status(500),[]);return t()
+def start_err():rq.e['wsgi.errors']=t();\
+    rs.s(status(500),[('Content-Type','text/plain')]);return t()
 
 
 class Rs(threading.local):
