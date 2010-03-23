@@ -18,29 +18,35 @@ from StringIO import StringIO as BytesIO
 MEMFILE_MAX = 1024*100
 
 
+def is_f(x): return type(x)==type(lambda:x)
+
+
 class Rq(threading.local, DictMixin):
-    def __init__(self):self.b({},None)
-    def __getitem__(self,k):return self.environ[k]
-    def __setitem__(self,k,v):self.environ[k]=v
+    sk = {}
+
+    def __init__(self):
+        self.b({},None)
+
+    def __getitem__(self,k):
+        if not self.sk.has_key(k):return self.e[k]
+        if is_f(self.sk[k]):self.sk[k]=self.sk[k](self);return self.sk[k]
+
+    def __setitem__(self,k,v):raise
 
     def b(self, e, app=None):
         self.app = app
-        self.environ = e
         self.e = e
         # self._GET = self._POST = self._GETPOST = None
         # self._COOKIES = self._body = self._header = None
-        self._body = None
-        # These attributes are used anyway, so it is ok to compute them here
         self.path = e.get('PATH_INFO', '/')
         if not self.path.startswith('/'):
             self.path = '/' + self.path
         self.method = e.get('REQUEST_METHOD', 'GET')
 
-    def keys(self): return self.environ.keys()
+    def keys(self): return self.e.keys()
 
-    # @property
-    # def query_string(self):
-    #     return self.environ.get('QUERY_STRING', '')
+    def query_string(self):return self.e.get('QUERY_STRING', '')
+    sk['QUERY_STRING'] = query_string
 
     # @property
     # def fullpath(self):
@@ -116,22 +122,25 @@ class Rq(threading.local, DictMixin):
 
     @property
     def body(self):
-        """ The HTTP request body as a seekable file object """
-        if self._body is None:
-            cl = 0 if not self['CONTENT_LENGTH'] else self['CONTENT_LENGTH']
-            maxread = max(0, int(cl))
-            stream = self.environ['wsgi.input']
-            self._body = BytesIO() if maxread < MEMFILE_MAX\
-                                   else TemporaryFile(mode='w+b')
-            while maxread > 0:
-                part = stream.read(min(maxread, MEMFILE_MAX))
-                if not part: #TODO: Wrong content_length. Error? Do nothing?
-                    break
-                self._body.write(part)
-                maxread -= len(part)
-            self.environ['wsgi.input'] = self._body
-        self._body.seek(0)
-        return self._body
+        return self['BODY']
+
+    def kbody(self):
+        cl = 0 if not self['CONTENT_LENGTH'] else self['CONTENT_LENGTH']
+        maxread = max(0, int(cl))
+        stream = self.e['wsgi.input']
+        body = BytesIO() if maxread < MEMFILE_MAX\
+                         else TemporaryFile(mode='w+b')
+        while maxread > 0:
+            part = stream.read(min(maxread, MEMFILE_MAX))
+            if not part: #TODO: Wrong content_length. Error? Do nothing?
+                break
+            body.write(part)
+            maxread -= len(part)
+        self.e['wsgi.input'] = body
+
+        body.seek(0)
+        return body
+    sk['BODY'] = kbody
 
     # @property
     # def auth(self): #TODO: Tests and docs. Add support for digest. namedtuple?
