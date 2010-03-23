@@ -1,52 +1,66 @@
 import threading
-# import cgi
+import inspect
+import cgi
 from UserDict import DictMixin
 # from Cookie import SimpleCookie
 # from urllib import quote as urlquote
 # from urlparse import urlunsplit
 
-# from data_structures import *
-# from utilities import *
-
-# try: from cgi import parse_qs # Python 2.5
-# except ImportError: from urlparse import parse_qs # Python 2.6
+from cgi import parse_qs as qs
 
 from StringIO import StringIO as BytesIO
-# TextIOWrapper = None
+TextIOWrapper = None
 
-# SECURECOOKIE_KEY = "Exi1GApX"
 MEMFILE_MAX = 1024*100
 
 
-def is_f(x): return type(x)==type(lambda:x)
-
-
 class Rq(threading.local, DictMixin):
-    sk = {}
-
-    def __init__(self):
-        self.b({},None)
+    def __init__(self):self.b({},None)
 
     def __getitem__(self,k):
         if not self.sk.has_key(k):return self.e[k]
-        if is_f(self.sk[k]):self.sk[k]=self.sk[k](self);return self.sk[k]
+        elif inspect.ismethod(self.sk[k]):self.sk[k]=self.sk[k]()
+        return self.sk[k]
 
     def __setitem__(self,k,v):raise
 
     def b(self, e, app=None):
-        self.app = app
-        self.e = e
-        # self._GET = self._POST = self._GETPOST = None
-        # self._COOKIES = self._body = self._header = None
-        self.path = e.get('PATH_INFO', '/')
+        self.app=app;self.e=e
+        self.sk={'QUERY_STRING':self.query_string,'GET':self.kGET,
+                 'POST':self.kPOST,'PARAMS':self.kparams,'BODY':self.kbody}
+        # self._COOKIES = self._header = None
+        self.path=e.get('PATH_INFO', '/')
         if not self.path.startswith('/'):
             self.path = '/' + self.path
         self.method = e.get('REQUEST_METHOD', 'GET')
 
-    def keys(self): return self.e.keys()
-
     def query_string(self):return self.e.get('QUERY_STRING', '')
-    sk['QUERY_STRING'] = query_string
+
+    @property
+    def POST(self):return self['POST']
+    def kPOST(self):
+        safe_env = {} # Build a safe environment for cgi
+        for key in ('REQUEST_METHOD', 'CONTENT_TYPE', 'CONTENT_LENGTH'):
+            if key in self.e:
+                safe_env[key] = self.e[key]
+        safe_env['QUERY_STRING'] = '' # Without this, sys.argv is called!
+        if TextIOWrapper:
+            fb = TextIOWrapper(self.body, encoding='ISO-8859-1')
+        else:
+            fb = self.body
+        data = cgi.FieldStorage(fp=fb, environ=safe_env)
+        POST = dict()
+        for item in data.list:
+            POST[item.name] = item if item.filename else item.value
+        return POST
+
+    @property
+    def GET(self):return self['GET']
+    def kGET(self):return qs(self['QUERY_STRING'],keep_blank_values=True)
+
+    @property
+    def params(self):return self['PARAMS']
+    def kparams(self):p=self['GET'];p.update(self['POST']);return p
 
     # @property
     # def fullpath(self):
@@ -82,48 +96,8 @@ class Rq(threading.local, DictMixin):
     #                 self._header[key] = value
     #     return self._header
 
-    # @property
-    # def GET(self):
-    #     """ Dictionary with parsed query_string data. """
-    #     if self._GET is None:
-    #         data = parse_qs(self.query_string, keep_blank_values=True)
-    #         self._GET = dict()
-    #         for key, values in data.iteritems():
-    #             for value in values:
-    #                 self._GET[key] = value
-    #     return self._GET
-
-    # @property
-    # def POST(self):
-    #     """ Dictionary with parsed form data. """
-    #     if self._POST is None:
-    #         safe_env = dict() # Build a safe environment for cgi
-    #         for key in ('REQUEST_METHOD', 'CONTENT_TYPE', 'CONTENT_LENGTH'):
-    #             if key in self.environ:
-    #                 safe_env[key] = self.environ[key]
-    #         safe_env['QUERY_STRING'] = '' # Without this, sys.argv is called!
-    #         if TextIOWrapper:
-    #             fb = TextIOWrapper(self.body, encoding='ISO-8859-1')
-    #         else:
-    #             fb = self.body
-    #         data = cgi.FieldStorage(fp=fb, environ=safe_env)
-    #         self._POST = dict()
-    #         for item in data.list:
-    #             self._POST[item.name] = item if item.filename else item.value
-    #     return self._POST
-
-    # @property
-    # def params(self):
-    #     """ A mix of GET and POST data. POST overwrites GET """
-    #     if self._GETPOST is None:
-    #         self._GETPOST = dict(self.GET)
-    #         self._GETPOST.update(dict(self.POST))
-    #     return self._GETPOST
-
     @property
-    def body(self):
-        return self['BODY']
-
+    def body(self):return self['BODY']
     def kbody(self):
         cl = 0 if not self['CONTENT_LENGTH'] else self['CONTENT_LENGTH']
         maxread = max(0, int(cl))
@@ -140,7 +114,6 @@ class Rq(threading.local, DictMixin):
 
         body.seek(0)
         return body
-    sk['BODY'] = kbody
 
     # @property
     # def auth(self): #TODO: Tests and docs. Add support for digest. namedtuple?
