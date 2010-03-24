@@ -30,6 +30,7 @@ def cookie_encode(d, k):m=base64.b64encode(pickle.dumps(d,-1));\
 
 
 def cookie_decode(data, k):
+    if not data: return None
     s, m = data.split('?',1)
     v=s[1:]==base64.b64encode(hmac.new(k,m).digest())
     if v:return pickle.loads(base64.b64decode(m))
@@ -56,6 +57,7 @@ class Rq(threading.local, DictMixin):
                  'COOKIES':self.kcookies}
         # self._COOKIES = self._header = None
         self.path=e.get('PATH_INFO', '/')
+        self.sk['PATH']=self.path
         if not self.path.startswith('/'):self.path='/'+self.path
         self.method = e.get('REQUEST_METHOD', 'GET')
 
