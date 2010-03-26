@@ -61,7 +61,8 @@ class Rq(threading.local, DictMixin):
         if not self.path.startswith('/'):self.path='/'+self.path
         self.method = e.get('REQUEST_METHOD', 'GET')
 
-    def query_string(self):return self.e.get('QUERY_STRING', '')
+    def query_string(self):
+        return unicode(self.e.get('QUERY_STRING', ''), 'utf-8')
 
     def kPOST(self):
         safe_env = {} # Build a safe environment for cgi
@@ -76,7 +77,8 @@ class Rq(threading.local, DictMixin):
         data = cgi.FieldStorage(fp=fb, environ=safe_env)
         POST = dict()
         for item in data.list:
-            POST[item.name] = item if item.filename else item.value
+            if item.filename: POST[item.name] = unicode(item,'utf-8')
+            else: POST[item.name] = unicode(item.value, 'utf-8')
         return POST
 
     def kGET(self):return qs(self['QUERY_STRING'],keep_blank_values=True)
@@ -187,7 +189,10 @@ class Orvet:
         else:rs.status=status(404);b=None
         return rs,b
 
-    def i(self,d):d=d or'';return[d]
+    def i(self,d):
+        d = d or''
+        if type(d) == type(u''): d = d.encode('utf-8')
+        return[d]
 
     def m(self, p, m):
         p=p.lstrip('/');h=None
