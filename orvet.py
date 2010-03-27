@@ -45,6 +45,19 @@ class H(dict):
         if self.has_key(i):return super(H,self).__getitem__(i)
 
 
+class SandBox(threading.local):
+    def b(self, app):
+        self.app = app
+        self.data = {}
+
+    def __getitem__(self,k):
+        if self.data.has_key(k):
+            return self.data[k]
+
+    def __setitem__(self,k,v):
+        self.data[k] = v
+
+
 class Rq(threading.local, DictMixin):
     def __init__(self):self.b({},None)
 
@@ -189,6 +202,7 @@ class Orvet:
         self.routes.setdefault(method,Rt()).add(p, h, **k)
 
     def h(self, e, s):
+        sandbox.b(self)
         rq.b(e,self);rs.b(s,self);h,a=self.m(rq.path,rq.method)
         if h:b=h(**a)
         else:rs.status=status(404);b=None
@@ -208,6 +222,7 @@ class Orvet:
 app = Orvet()
 request = rq = Rq()
 response = rs = Rs()
+sandbox = SandBox()
 
 
 if __name__ == '__main__':
