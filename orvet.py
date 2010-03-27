@@ -40,6 +40,11 @@ def start_err():rq.e['wsgi.errors']=t();\
     rs.s(status(500),[('Content-Type','text/plain')]);return t()
 
 
+class H(dict):
+    def __getitem__(self,i):
+        if self.has_key(i):return super(H,self).__getitem__(i)
+
+
 class Rq(threading.local, DictMixin):
     def __init__(self):self.b({},None)
 
@@ -75,13 +80,13 @@ class Rq(threading.local, DictMixin):
         else:
             fb = self.body
         data = cgi.FieldStorage(fp=fb, environ=safe_env)
-        POST = dict()
+        POST = H()
         for item in data.list:
             if item.filename: POST[item.name] = unicode(item,'utf-8')
             else: POST[item.name] = unicode(item.value, 'utf-8')
         return POST
 
-    def kGET(self):return qs(self['QUERY_STRING'],keep_blank_values=True)
+    def kGET(self):return H(qs(self['QUERY_STRING'],keep_blank_values=True))
 
     @property
     def params(self):return self['PARAMS']
